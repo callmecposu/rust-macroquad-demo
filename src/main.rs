@@ -1,5 +1,3 @@
-// TRIGGER GH-PAGES DEPLOYMENT
-
 use macroquad::prelude::*;
 
 use rand::gen_range;
@@ -11,7 +9,7 @@ const tile_size_px: i32 = 24;
 const map_width: usize = 25;
 const map_height: usize = 25;
 const wall_prob: f32 = 0.2;
-const character_speed: f32 = 0.5;
+const character_speed_per_sec: f32 = (2 * tile_size_px) as f32;
 const hitbox_x_margin: f32 = 0.1;
 const hitbox_y_margin: f32 = 0.1;
 
@@ -277,6 +275,7 @@ fn get_map_position(x: f32, y: f32) -> (usize, usize) {
 
 fn handle_walk_input(character_rc: &Rc<RefCell<ScreenObject>>, level: &Level) {
     let mut character_ref = character_rc.borrow_mut();
+    let character_speed = character_speed_per_sec / get_fps() as f32;
     // respond to user input
     if is_key_down(KeyCode::W) {
         if
