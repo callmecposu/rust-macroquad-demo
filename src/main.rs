@@ -10,8 +10,8 @@ const map_width: usize = 25;
 const map_height: usize = 25;
 const wall_prob: f32 = 0.2;
 const character_speed_per_sec: f32 = (2 * tile_size_px) as f32;
-const hitbox_x_margin: f32 = 0.1;
-const hitbox_y_margin: f32 = 0.1;
+const hitbox_x_margin: f32 = (tile_size_px / 8) as f32;
+const hitbox_y_margin: f32 = (tile_size_px / 8) as f32;
 
 fn conf() -> Conf {
     Conf {
