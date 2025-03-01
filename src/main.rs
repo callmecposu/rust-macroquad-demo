@@ -1,3 +1,5 @@
+// TRIGGER GH-PAGES DEPLOYMENT
+
 use macroquad::prelude::*;
 
 use rand::gen_range;
