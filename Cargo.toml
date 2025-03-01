@@ -5,3 +5,11 @@ edition = "2021"
 
 [dependencies]
 macroquad = "0.4.13"
+# rand = "0.9"
+
+# [dependencies.getrandom]
+# version = "*"
+# features = ["wasm_js"]
+
+# [dependencies.js-sys]
+# version = "0.3.76"
