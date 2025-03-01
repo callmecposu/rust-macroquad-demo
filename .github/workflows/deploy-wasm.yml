@@ -27,7 +27,7 @@ jobs:
 
       - name: Copy Only Required Files
         run: |
-          cp gh_pages.index.html out/index.html
+          cp gh-pages.index.html out/index.html
           cp target/release/wasm32-unknown-unknown/rust-macroquad-demo.wasm out/rust-macroquad-demo.wasm
 
       - name: Deploy to GitHub Pages
