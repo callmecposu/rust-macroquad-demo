@@ -29,7 +29,7 @@ jobs:
         run: |
           mkdir -p out
           cp gh-pages.index.html out/index.html
-          cp target/release/wasm32-unknown-unknown/rust-macroquad-demo.wasm out/rust-macroquad-demo.wasm
+          cp target/wasm32-unknown-unknown/release/rust-macroquad-demo.wasm out/rust-macroquad-demo.wasm
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
