@@ -3,9 +3,9 @@ use macroquad::prelude::*;
 use rand::gen_range;
 
 use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{ RefCell, RefMut };
 
-const tile_size_px: i32 = 24;
+const tile_size_px: i32 = 64;
 const map_width: usize = 25;
 const map_height: usize = 25;
 const wall_prob: f32 = 0.2;
@@ -99,6 +99,12 @@ impl Level {
             })
         );
         map_container.borrow_mut().children.push(Rc::clone(&character));
+        // center camera on the player
+        map_container.borrow_mut().x =
+            screen_width() / 2.0 - character.borrow().x;
+        map_container.borrow_mut().y =
+            screen_height() / 2.0 - character.borrow().y;
+        // map_x + char_x = screen_w / 2
         return &self;
     }
 
@@ -223,24 +229,17 @@ async fn main() {
             }
             AppState::Game => {
                 clear_background(LIGHTGRAY);
+                handle_walk_input(&level);
                 {
-                    let root_ref = level.root_elem.borrow();
-                    let map_container_ref = root_ref.children[0].borrow();
-                    let character_rc = map_container_ref.children
-                        .last()
-                        .unwrap();
-                    handle_walk_input(character_rc, &level);
-                }
-                {
-                    // update the levelcontainer's x & y to be centered
+                    // // update the levelcontainer's x & y to be centered
 
-                    let root_ref = level.root_elem.borrow();
-                    let mut map_container_ref =
-                        root_ref.children[0].borrow_mut();
-                    map_container_ref.x =
-                        screen_width() / 2.0 - map_container_ref.width / 2.0;
-                    map_container_ref.y =
-                        screen_height() / 2.0 - map_container_ref.height / 2.0;
+                    // let root_ref = level.root_elem.borrow();
+                    // let mut map_container_ref =
+                    //     root_ref.children[0].borrow_mut();
+                    // map_container_ref.x =
+                    //     screen_width() / 2.0 - map_container_ref.width / 2.0;
+                    // map_container_ref.y =
+                    //     screen_height() / 2.0 - map_container_ref.height / 2.0;
                 }
                 level.root_elem.borrow().draw();
             }
@@ -273,48 +272,78 @@ fn get_map_position(x: f32, y: f32) -> (usize, usize) {
     );
 }
 
-fn handle_walk_input(character_rc: &Rc<RefCell<ScreenObject>>, level: &Level) {
-    let mut character_ref = character_rc.borrow_mut();
-    let character_speed = character_speed_per_sec / get_fps() as f32;
-    // respond to user input
-    if is_key_down(KeyCode::W) {
-        if
-            !level.collides_with_a_wall(
-                character_ref.x,
-                character_ref.y - character_speed
-            )
-        {
-            character_ref.y -= character_speed;
+fn handle_walk_input(level: &Level) {
+    let (mut new_x, mut new_y): (f32, f32);
+    let (mut orig_x, mut orig_y): (f32, f32);
+    {
+        let root_ref = level.root_elem.borrow();
+        let map_container_ref = root_ref.children[0].borrow();
+        let character_ref = map_container_ref.children.last().unwrap().borrow();
+        let character_speed = character_speed_per_sec / (get_fps() as f32);
+        (new_x, new_y) = (character_ref.x, character_ref.y);
+        (orig_x, orig_y) = (character_ref.x, character_ref.y);
+        // respond to user input
+        if is_key_down(KeyCode::W) {
+            if !level.collides_with_a_wall(new_x, new_y - character_speed) {
+                new_y -= character_speed;
+            }
+        }
+        if is_key_down(KeyCode::A) {
+            if !level.collides_with_a_wall(new_x - character_speed, new_y) {
+                new_x -= character_speed;
+            }
+        }
+        if is_key_down(KeyCode::S) {
+            if !level.collides_with_a_wall(new_x, new_y + character_speed) {
+                new_y += character_speed;
+            }
+        }
+        if is_key_down(KeyCode::D) {
+            if !level.collides_with_a_wall(new_x + character_speed, new_y) {
+                new_x += character_speed;
+            }
         }
     }
-    if is_key_down(KeyCode::A) {
-        if
-            !level.collides_with_a_wall(
-                character_ref.x - character_speed,
-                character_ref.y
-            )
-        {
-            character_ref.x -= character_speed;
-        }
+    move_character(level, new_x - orig_x, new_y - orig_y);
+}
+
+fn is_within_bounds(x: f32, y: f32, bounds: ((f32, f32), (f32, f32))) -> bool {
+    x >= bounds.0.0 &&
+        x + (tile_size_px as f32) <= bounds.1.0 &&
+        y >= bounds.0.1 &&
+        y + (tile_size_px as f32) <= bounds.1.1
+}
+
+fn move_character(level: &Level, x_diff: f32, y_diff: f32) {
+    let camera_bounds = (
+        (screen_width() / 4.0, screen_height() / 4.0),
+        ((screen_width() * 3.0) / 4.0, (screen_height() * 3.0) / 4.0),
+    );
+
+    let root_ref = level.root_elem.borrow();
+    let (mut char_screen_x, mut char_screen_y): (f32, f32);
+    {
+        let map_container_ref = root_ref.children[0].borrow();
+        let character_ref = map_container_ref.children.last().unwrap().borrow();
+        (char_screen_x, char_screen_y) = character_ref.get_absolute_position();
     }
-    if is_key_down(KeyCode::S) {
-        if
-            !level.collides_with_a_wall(
-                character_ref.x,
-                character_ref.y + character_speed
-            )
-        {
-            character_ref.y += character_speed;
-        }
+
+    char_screen_x += x_diff;
+    char_screen_y += y_diff;
+
+    {
+        let map_container_ref = root_ref.children[0].borrow();
+        let mut character_ref = map_container_ref.children
+            .last()
+            .unwrap()
+            .borrow_mut();
+        character_ref.x += x_diff;
+        character_ref.y += y_diff;
     }
-    if is_key_down(KeyCode::D) {
-        if
-            !level.collides_with_a_wall(
-                character_ref.x + character_speed,
-                character_ref.y
-            )
-        {
-            character_ref.x += character_speed;
-        }
+
+    if !is_within_bounds(char_screen_x, char_screen_y, camera_bounds) {
+        let mut map_container_ref = root_ref.children[0].borrow_mut();
+        map_container_ref.x -= x_diff;
+        map_container_ref.y -= y_diff;
     }
 }
