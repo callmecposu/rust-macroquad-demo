@@ -229,7 +229,7 @@ async fn main() {
         "images/spritesheet_demo.png"
     ).await.unwrap();
 
-    let mut anim_buffer = HashSet::<usize>::new();
+    let mut anim_buffer = Vec::<usize>::new();
 
     loop {
         match app_state {
@@ -282,7 +282,11 @@ async fn main() {
                 {
                     let root_ref = level.root_elem.borrow();
                     let map_container_ref = root_ref.children[0].borrow();
-                    let character_ref = map_container_ref.children.iter().last().unwrap().borrow();
+                    let character_ref = map_container_ref.children
+                        .iter()
+                        .last()
+                        .unwrap()
+                        .borrow();
                     animate_walking(
                         &mut sprite,
                         &spritesheet,
@@ -409,7 +413,7 @@ fn move_character(level: &Level, x_diff: f32, y_diff: f32) {
 fn animate_walking(
     sprite: &mut AnimatedSprite,
     spritesheet: &Texture2D,
-    anim_buffer: &mut HashSet<usize>,
+    anim_buffer: &mut Vec<usize>,
     x: f32,
     y: f32
 ) {
@@ -421,29 +425,45 @@ fn animate_walking(
     });
     // change animation depending on user input
     if is_key_down(KeyCode::W) {
-        anim_buffer.insert(1);
+        if !anim_buffer.contains(&1) {
+            anim_buffer.push(1);
+        }
     }
     if is_key_down(KeyCode::A) {
-        anim_buffer.insert(2);
+        if !anim_buffer.contains(&2) {
+            anim_buffer.push(2);
+        }
     }
     if is_key_down(KeyCode::S) {
-        anim_buffer.insert(3);
+        if !anim_buffer.contains(&3) {
+            anim_buffer.push(3);
+        }
     }
     if is_key_down(KeyCode::D) {
-        anim_buffer.insert(4);
+        if !anim_buffer.contains(&4) {
+            anim_buffer.push(4);
+        }
     }
     // remove animations from anim_buffer on key release
     if is_key_released(KeyCode::W) {
-        anim_buffer.remove(&1);
+        if let Some(rm_index) = anim_buffer.iter().position(|x| *x == 1) {
+            anim_buffer.remove(rm_index);
+        }
     }
     if is_key_released(KeyCode::A) {
-        anim_buffer.remove(&2);
+        if let Some(rm_index) = anim_buffer.iter().position(|x| *x == 2) {
+            anim_buffer.remove(rm_index);
+        }
     }
     if is_key_released(KeyCode::S) {
-        anim_buffer.remove(&3);
+        if let Some(rm_index) = anim_buffer.iter().position(|x| *x == 3) {
+            anim_buffer.remove(rm_index);
+        }
     }
     if is_key_released(KeyCode::D) {
-        anim_buffer.remove(&4);
+        if let Some(rm_index) = anim_buffer.iter().position(|x| *x == 4) {
+            anim_buffer.remove(rm_index);
+        }
     }
     // if anim buffer containes something, switch to the last animation
     if anim_buffer.len() > 0 {
