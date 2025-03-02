@@ -31,7 +31,7 @@ jobs:
           cp gh-pages.index.html out/index.html
           cp target/wasm32-unknown-unknown/release/rust-macroquad-demo.wasm out/rust-macroquad-demo.wasm
           mkdir -p out/images
-          cp -r images out/images
+          cp -r images out
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
