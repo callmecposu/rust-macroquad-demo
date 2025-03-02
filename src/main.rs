@@ -1,7 +1,9 @@
 use macroquad::prelude::*;
+use macroquad::experimental::animation::*;
 
 use rand::gen_range;
 
+use std::collections::HashSet;
 use std::rc::Rc;
 use std::cell::{ RefCell, RefMut };
 
@@ -134,6 +136,7 @@ impl Level {
 enum AppState {
     Menu,
     Game,
+    AnimationTest,
 }
 
 struct ScreenObject {
@@ -183,6 +186,51 @@ async fn main() {
 
     let mut app_state = AppState::Menu;
 
+    // define animations
+    let mut sprite = AnimatedSprite::new(
+        64,
+        64,
+        &[
+            Animation {
+                name: "idle".to_string(),
+                row: 24,
+                frames: 2,
+                fps: 3,
+            },
+            Animation {
+                name: "walkNorth".to_string(),
+                row: 8,
+                frames: 9,
+                fps: 8,
+            },
+            Animation {
+                name: "walkWest".to_string(),
+                row: 9,
+                frames: 9,
+                fps: 8,
+            },
+            Animation {
+                name: "walkSouth".to_string(),
+                row: 10,
+                frames: 9,
+                fps: 8,
+            },
+            Animation {
+                name: "walkEast".to_string(),
+                row: 11,
+                frames: 9,
+                fps: 8,
+            },
+        ],
+        true
+    );
+
+    let spritesheet = load_texture(
+        "images/spritesheet_demo.png"
+    ).await.unwrap();
+
+    let mut anim_buffer = HashSet::<usize>::new();
+
     loop {
         match app_state {
             AppState::Menu => {
@@ -230,18 +278,28 @@ async fn main() {
             AppState::Game => {
                 clear_background(LIGHTGRAY);
                 handle_walk_input(&level);
-                {
-                    // // update the levelcontainer's x & y to be centered
-
-                    // let root_ref = level.root_elem.borrow();
-                    // let mut map_container_ref =
-                    //     root_ref.children[0].borrow_mut();
-                    // map_container_ref.x =
-                    //     screen_width() / 2.0 - map_container_ref.width / 2.0;
-                    // map_container_ref.y =
-                    //     screen_height() / 2.0 - map_container_ref.height / 2.0;
-                }
                 level.root_elem.borrow().draw();
+                {
+                    let root_ref = level.root_elem.borrow();
+                    let map_container_ref = root_ref.children[0].borrow();
+                    let character_ref = map_container_ref.children.iter().last().unwrap().borrow();
+                    animate_walking(
+                        &mut sprite,
+                        &spritesheet,
+                        &mut anim_buffer,
+                        character_ref.get_absolute_position().0,
+                        character_ref.get_absolute_position().1
+                    );
+                }
+            }
+            AppState::AnimationTest => {
+                animate_walking(
+                    &mut sprite,
+                    &spritesheet,
+                    &mut anim_buffer,
+                    10.0,
+                    10.0
+                );
             }
         }
 
@@ -346,4 +404,67 @@ fn move_character(level: &Level, x_diff: f32, y_diff: f32) {
         map_container_ref.x -= x_diff;
         map_container_ref.y -= y_diff;
     }
+}
+
+fn animate_walking(
+    sprite: &mut AnimatedSprite,
+    spritesheet: &Texture2D,
+    anim_buffer: &mut HashSet<usize>,
+    x: f32,
+    y: f32
+) {
+    // clear_background(WHITE);
+    draw_texture_ex(&spritesheet, x, y, WHITE, DrawTextureParams {
+        source: Some(sprite.frame().source_rect),
+        dest_size: Some(sprite.frame().dest_size),
+        ..Default::default()
+    });
+    // change animation depending on user input
+    if is_key_down(KeyCode::W) {
+        anim_buffer.insert(1);
+    }
+    if is_key_down(KeyCode::A) {
+        anim_buffer.insert(2);
+    }
+    if is_key_down(KeyCode::S) {
+        anim_buffer.insert(3);
+    }
+    if is_key_down(KeyCode::D) {
+        anim_buffer.insert(4);
+    }
+    // remove animations from anim_buffer on key release
+    if is_key_released(KeyCode::W) {
+        anim_buffer.remove(&1);
+    }
+    if is_key_released(KeyCode::A) {
+        anim_buffer.remove(&2);
+    }
+    if is_key_released(KeyCode::S) {
+        anim_buffer.remove(&3);
+    }
+    if is_key_released(KeyCode::D) {
+        anim_buffer.remove(&4);
+    }
+    // if anim buffer containes something, switch to the last animation
+    if anim_buffer.len() > 0 {
+        let last_added_anim = *anim_buffer.iter().last().unwrap();
+        if sprite.current_animation() != last_added_anim {
+            sprite.set_animation(last_added_anim);
+            sprite.set_frame(1);
+        }
+    } else {
+        // reset to idle
+        if sprite.current_animation() != 0 {
+            sprite.set_animation(0);
+            sprite.set_frame(0);
+        }
+    }
+    // if walking, skip the first frame
+    if
+        (1..=4).contains(&sprite.current_animation()) &&
+        sprite.frame().source_rect.x == 0.0
+    {
+        sprite.set_frame(1);
+    }
+    sprite.update();
 }
